@@ -143,7 +143,7 @@ public class JPATest {
 				Certificate cert = null;
 				try {
 					statement.setString(1, "" + (j * 10000));
-					statement.setString(2, "" + ((j - 1) * 10000 + 1));
+					statement.setString(2, "" + ((j - 1) * 10000   + 1));
 					rs = statement.executeQuery();
 					System.out.print(j + ". " + (System.currentTimeMillis() - start) + " < -----  ");
 
@@ -151,7 +151,8 @@ public class JPATest {
 					
 					while (rs.next()) {
 						id = rs.getString("CERT_ID");
-						batch.put(id, rowMapper.mapRow(rs, row++));
+						// batch.put(id, rowMapper.mapRow(rs, row++));
+						batch.put(id, mapRow(rs, row++));
 						cert = batch.get(id);
 						
 						//if (page++ == pageLimit) { 
@@ -193,6 +194,15 @@ public class JPATest {
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 		}
+	}
+	
+	private Certificate mapRow(ResultSet rs, int row) throws SQLException {
+		Certificate cert = new Certificate();
+		cert.setCert_id(rs.getLong("cert_id"));
+		cert.setNomercert(rs.getString("nomercert"));
+		cert.setNblanka(rs.getString("nblanka"));
+		cert.setTovar(rs.getString("tovar"));
+		return cert;
 	}
 	
 }
