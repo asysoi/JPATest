@@ -24,7 +24,7 @@ import java.util.Properties;
 public class AppConfig {
 
     private static final String PROPERTY_NAME_DATABASE_DRIVER = "oracle.jdbc.driver.OracleDriver";
-    private static final String PROPERTY_NAME_DATABASE_URL = "jdbc:oracle:thin:@//localhost:1521/pdborcl";
+    private static final String PROPERTY_NAME_DATABASE_URL = "jdbc:oracle:thin:@//192.168.0.179:1521/orclpdb";
     private static final String PROPERTY_NAME_DATABASE_USERNAME = "beltpp";
     private static final String PROPERTY_NAME_DATABASE_PASSWORD = "123456";
 
@@ -45,7 +45,6 @@ public class AppConfig {
       factory.setDataSource(dataSource());
       factory.afterPropertiesSet();
       System.out.println("Factory = " + factory.toString());
-      System.out.println("Factory = " + factory.getObject().getPersistenceUnitUtil().getClass().getName());
       return factory.getObject();
     }
     

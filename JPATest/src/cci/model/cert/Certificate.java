@@ -51,8 +51,6 @@ public class Certificate {
 	private String otd_addr_building;
 	private String parentnumber = "";
 	private String parentstatus = "";
-	@Transient
-	private String tovar;
 	private String codestranav;
 	private String codestranapr;
 	private String codestranap;
@@ -60,13 +58,15 @@ public class Certificate {
 	private String eotd_name;
 	private String eotd_addr_city;
 	private String eotd_addr_line;
+	private Long parent_id;
+	@Transient	
+	private String tovar;
 	@Transient
 	private List<Product> products;
 	@Transient
 	private String childnumber = "";
 	@Transient
 	private Integer child_id = 0;
-	private Long parent_id;
 	@Transient
 	private int cursor;
 	@Transient
@@ -533,12 +533,120 @@ public class Certificate {
 		this.category = category;
 	}
 
-	@Override
-	public String toString() {
+	public String toStringOld() {
 		return "Certificate [cert_id=" + cert_id + ", datacert=" + datacert + ", nomercert=" + nomercert + ", nblanka="
 				+ nblanka + " tovar = " + (tovar == null ? 0 : tovar.length()) + "]";
 	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append(getTovar());
+		builder.append(" ");
+		builder.append(getParentnumber());
+		builder.append(" ");
+		builder.append(getParentstatus());
+		builder.append(" ");
+		builder.append(getCert_id());
+		builder.append(" ");
+		builder.append(getForms());
+		builder.append(" ");
+		builder.append(getUnn());
+		builder.append(" ");
+		builder.append(getKontrp());
+		builder.append(" ");
+		builder.append(getKontrs());
+		builder.append(" ");
+		builder.append(getAdress());
+		builder.append(" ");
+		builder.append(getPoluchat());
+		builder.append(" ");
+		builder.append(getAdresspol());
+		builder.append(" ");
+		builder.append(getDatacert());
+		builder.append(" ");
+		builder.append(getNomercert());
+		builder.append(" ");
+		builder.append(getExpert());
+		builder.append(" ");
+		builder.append(getNblanka());
+		builder.append(" ");
+		builder.append(getRukovod());
+		builder.append(" ");
+		builder.append(getTransport());
+		builder.append(" ");
+		builder.append(getMarshrut());
+		builder.append(" ");
+		builder.append(getOtmetka());
+		builder.append(" ");
+		builder.append(getStranav());
+		builder.append(" ");
+		builder.append(getStranapr());
+		builder.append(" ");
+		builder.append(getStatus());
+		builder.append(" ");
+		builder.append(getKoldoplist());
+		builder.append(" ");
+		builder.append(getFlexp());
+		builder.append(" ");
+		builder.append(getUnnexp());
+		builder.append(" ");
+		builder.append(getExpp());
+		builder.append(" ");
+		builder.append(getExps());
+		builder.append(" ");
+		builder.append(getExpadress());
+		builder.append(" ");
+		builder.append(getFlimp());
+		builder.append(" ");
+		builder.append(getImporter());
+		builder.append(" ");
+		builder.append(getAdressimp());
+		builder.append(" ");
+		builder.append(getFlsez());
+		builder.append(" ");
+		builder.append(getSez());
+		builder.append(" ");
+		builder.append(getFlsezrez());
+		builder.append(" ");
+		builder.append(getStranap());
+		builder.append(" ");
+		builder.append(getProducts());
+		builder.append(" ");
+		builder.append(getOtd_addr_index());
+		builder.append(" ");
+		builder.append(getOtd_addr_city());
+		builder.append(" ");
+		builder.append(getOtd_addr_line());
+		builder.append(" ");
+		builder.append(getOtd_addr_building());
+		builder.append(" ");
+		builder.append(getOtd_name());
+		builder.append(" ");
+		builder.append(getShort_kontrp());
+		builder.append(" ");
+		builder.append(getEotd_name());
+		builder.append(" ");
+		builder.append(getEotd_addr_city());
+		builder.append(" ");
+		builder.append(getEotd_addr_line());
+		builder.append(" ");
+		builder.append(getOtd_id());
+		builder.append(" ");
+		builder.append(getParent_id());
+		builder.append(" ");
+		builder.append(getCodestranav());
+		builder.append(" ");
+		builder.append(getCodestranapr());
+		builder.append(" ");
+		builder.append(getCodestranap());
+		builder.append(" ");
+		builder.append(getCategory());
+		return builder.toString();
+	}
+
 	
+
 	
 	
 }
