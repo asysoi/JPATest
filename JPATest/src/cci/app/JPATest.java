@@ -71,6 +71,8 @@ public class JPATest {
 	
 	public static void main(String[] str) throws Exception {
 		String indexPath = "e:\\java\\tmp\\indcert";
+		boolean searchOrIndex = false;
+		boolean jdbcOrJPA = true;
 		AnnotationConfigApplicationContext ctx = 
 				new AnnotationConfigApplicationContext();
         ctx.register(AppConfig.class);
@@ -80,16 +82,16 @@ public class JPATest {
         jpa.init();
 		long cstart = System.currentTimeMillis();
 		
-		if (true) { // search
+		if (searchOrIndex) { // search
 			jpa.search(indexPath, "+by +sea");
 		} else { // index
-			if (true) {
-				jpa.indexCertificates(indexPath, 10000);
+			if (jdbcOrJPA) {
+				jpa.indexCertificates(indexPath, 10000, false);
 			} else {
 				int pagesize = 1000;
 				List<Certificate> certs;
 
-				for (int page = 1; page < 899; page++) {
+				for (int page = 1; page < 915; page++) {
 					long start = System.currentTimeMillis();
 					System.out.print(page);
 					certs = jpa.getCertificatesPage(page, pagesize);
@@ -143,7 +145,7 @@ public class JPATest {
 	}
 	
 	    
-	public void indexCertificates(String indexPath, int blocksize) throws SQLException {
+	public void indexCertificates(String indexPath, int blocksize, boolean create) throws SQLException {
 		PreparedStatement statement = null;
 		initConnection();
 
@@ -151,19 +153,20 @@ public class JPATest {
 				+ "(select * from c_cert where cert_id in "
 				+ " (select  a.cert_id " + " from (SELECT cert_id FROM (select cert_id from c_cert) "
 				+ " where rownum <= ? " + ") a left join (SELECT cert_id FROM (select cert_id from c_cert )"
-				+ " where rownum <= ? " + ") b on a.cert_id = b.cert_id where b.cert_id is null))   "
+				+ " where rownum < ? " + ") b on a.cert_id = b.cert_id where b.cert_id is null))   "
 				+ " c left join C_PRODUCT_DENORM p on c.cert_id = p.cert_id";
 
 		statement = dbConnection.prepareStatement(selectTableSQL);
 		
-		BeanPropertyRowMapper<Certificate> rowMapper = new BeanPropertyRowMapper<Certificate>(
-				Certificate.class);
+		BeanPropertyRowMapper<Certificate> rowMapper = 
+				new BeanPropertyRowMapper<Certificate>(Certificate.class);
 		ResultSet rs;
 		Map<String, Certificate> batch = new HashMap<String, Certificate>();
 		String id = "";
                 
 		try {
-			for (int j = 1; j < 890000/blocksize; j++) {
+			int row = 1;
+			for (int j = 1; j <= 920000/blocksize; j++) {
 				long start = System.currentTimeMillis();
 				Certificate cert = null;
 				try {
@@ -172,22 +175,21 @@ public class JPATest {
 					rs = statement.executeQuery();
 					System.out.print(j + ". " + (System.currentTimeMillis() - start) + " < -----  ");
 
-					int i = 1, row = 1, page = 1;
-					
 					while (rs.next()) {
 						id = rs.getString("CERT_ID");
 						batch.put(id, rowMapper.mapRow(rs, row++));
 						// batch.put(id, mapRow(rs, row++));
 					}
-					textAddOrUpdateToIndex(indexPath, batch, false);
+					textAddOrUpdateToIndex(indexPath, batch, create);
 					batch.clear();
 				} catch (SQLException e) {
 					System.out.println(e.getMessage());
 				} catch (Exception e) {
 					e.printStackTrace();
 				} 
-				System.out.println((System.currentTimeMillis() - start) + " --- > ");
+				System.out.println((System.currentTimeMillis() - start) + " --- >  Row: " + row);
 			}
+			System.out.println("Добавлено или обновлено " + row + "  документов (сертификатов) !");
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -259,7 +261,7 @@ public class JPATest {
 		} finally {
 		   if (writer != null) writer.close();
 		}
-		System.out.println(new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date())+ " - Added to index - " + (System.currentTimeMillis() - start));
+		System.out.print(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " - Added to index - " + (System.currentTimeMillis() - start) + " ---- ");
 	}
 	
    /* -------------------------------------------
