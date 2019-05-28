@@ -71,7 +71,7 @@ public class JPATest {
 	
 	public static void main(String[] str) throws Exception {
 		String indexPath = "e:\\java\\tmp\\indcert";
-		boolean searchOrIndex = false;
+		boolean searchOrIndex = true;
 		boolean jdbcOrJPA = true;
 		AnnotationConfigApplicationContext ctx = 
 				new AnnotationConfigApplicationContext();
