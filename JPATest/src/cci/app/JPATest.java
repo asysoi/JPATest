@@ -82,8 +82,11 @@ public class JPATest {
         jpa.init();
 		long cstart = System.currentTimeMillis();
 		
+		jpa.searchBeltpp();
+		
+		
 		if (searchOrIndex) { // search
-			jpa.search(indexPath, "+by +sea");
+			// jpa.search(indexPath, "+by +sea");
 		} else { // index
 			if (jdbcOrJPA) {
 				jpa.indexCertificates(indexPath, 10000, false);
@@ -199,6 +202,62 @@ public class JPATest {
 			}
 		}
 		
+	}
+	
+	public void searchBeltpp() throws SQLException {
+		PreparedStatement statement = null;
+		Statement stat = null;
+		initConnection();
+		ResultSet rs;
+
+		try {
+
+			Map<String, String> names = new HashMap<String, String>();
+			String namesSQL = "SELECT * from evaluation ORDER by name";
+			stat = dbConnection.createStatement();
+
+			rs = stat.executeQuery(namesSQL);
+
+			while (rs.next()) {
+				names.put(rs.getString("name"), "");
+			}
+
+			String selectTableSQL = "SELECT * from enterprises where UPPER(name_main) like ? or UPPER(name_short_ru) like ? or UPPER(name_full_ru) like ? ";
+			statement = dbConnection.prepareStatement(selectTableSQL);
+
+			int i = 1;
+			for (String name : names.keySet()) {
+
+				try {
+					statement.setString(1, "%"+name.trim().toUpperCase()+"%");
+					statement.setString(2, "%"+name.trim().toUpperCase()+"%");
+					statement.setString(3, "%"+name.trim().toUpperCase()+"%");
+					rs = statement.executeQuery();
+
+					while (rs.next()) {
+						names.replace(name, rs.getInt("numbercard") + "");
+						//System.out.println(i++ + ". " + name + "\t" + names.get(name));
+					}
+					System.out.println(name + "\t" + names.get(name));
+					// System.out.println((i++) + ". " + name + ": " + names.get(name));
+					
+				} catch (SQLException e) {
+					System.out.println(e.getMessage());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		} finally {
+			if (stat != null) {
+				stat.close();
+			}
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
 	}
 	
 	
