@@ -82,22 +82,34 @@ public class JPATest {
         jpa.init();
 		long cstart = System.currentTimeMillis();
 		
-		jpa.searchBeltpp();
+		// jpa.searchBeltpp();
 		
 		
 		if (searchOrIndex) { // search
-			// jpa.search(indexPath, "+by +sea");
+			Map<String, List<String>> result = jpa.search(indexPath, "BYAZ*", 1 , 10);
+//			List<Certificate> certs = jpa.getCertificatesByIds(ids);
+//			for (Certificate cert : certs ) {
+//			    System.out.println(cert.getCert_id() + " | " + cert.getNomercert() + " | " + cert.getNblanka() + " | ");        	
+//			}
+			String rows = (String) result.keySet().toArray()[0];
+			System.out.println("Rows : " + rows);
+			
+			for (String id : result.get(rows) ) {
+   			     Certificate cert = jpa.findCertificateByID(id);
+   			     System.out.println(cert.getCert_id() + " | " + cert.getNomercert() + " | " + cert.getNblanka() + " | ");   			     
+			}
 		} else { // index
 			if (jdbcOrJPA) {
 				jpa.indexCertificates(indexPath, 10000, false);
 			} else {
-				int pagesize = 1000;
+				int pagesize = 10000;
 				List<Certificate> certs;
 
-				for (int page = 1; page < 915; page++) {
+				for (int page = 1; page < 92; page++) {
 					long start = System.currentTimeMillis();
 					System.out.print(page);
 					certs = jpa.getCertificatesPage(page, pagesize);
+					System.out.println(certs.get(1).getCert_id());
 					// certs = jpa.getCertificateList(page, pagesize);
 					certs.clear();
 					System.out.println(". " + (System.currentTimeMillis() - start) + " | FM: "
@@ -108,6 +120,10 @@ public class JPATest {
 		}
 		ctx.close();
     }
+
+	private Certificate findCertificateByID(String id) {
+		return certRepository.findById(Long.parseLong(id)).get();
+	}
 
 	public void init () {
 		entityManager = emFactory.createEntityManager();
@@ -147,6 +163,14 @@ public class JPATest {
 					.getResultList();
 	}
 	
+	
+	public List<Certificate> getCertificatesByIds(List<String> ids) {
+		entityManager.clear();
+		String sql = "SELECT c from Certificate c where c.cert_id in (" + ids.toString().replace("[", "").replace("]", "") + ")";
+				
+		return entityManager
+				.createQuery(sql, Certificate.class).getResultList(); 
+	}
 	    
 	public void indexCertificates(String indexPath, int blocksize, boolean create) throws SQLException {
 		PreparedStatement statement = null;
@@ -326,37 +350,36 @@ public class JPATest {
    /* -------------------------------------------
 	* Search by Lucene index 
 	* ------------------------------------------- */	
-	public void search(String index, String queryString) throws Exception {
+	public Map<String, List<String>> search(String indexPath, String queryString, int numberPage, int hitsPerPage) throws Exception {
 		String field = "content";
 		String queries = null;
 		boolean raw = false;
-		int hitsPerPage = 10;
-		int start = 1;
-		
+	
 		QueryParser parser = new QueryParser(field, new StandardAnalyzer());
 		Query query = parser.parse(queryString);
-		System.out.println("Searching for: " + query.toString(field));
-		
-		IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(index)));
+		IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
 		IndexSearcher searcher = new IndexSearcher(reader);
-		//TopDocs results = searcher.search(query, hitsPerPage);
-		
 		TopDocs results = searcher.search(query, reader.numDocs()); 
 		ScoreDoc[] hits = results.scoreDocs;
-
+           
 		int numTotalHits = Math.toIntExact(results.totalHits.value);
 		System.out.println(numTotalHits + " total matching documents");
+		List<String> ids = new ArrayList();
 		
-		for(int i=start; i<start+hitsPerPage && i < numTotalHits; ++i) {
+		for(int i=(numberPage - 1)*hitsPerPage + 1; i<=numberPage * hitsPerPage && i < numTotalHits; ++i) {
 		    int docId = hits[i].doc;
 		    Document d = searcher.doc(docId);
-		    System.out.println(i + ". " +  d.get("id") + " | " + d.get("content"));
+		    ids.add(d.get("id"));
+		    System.out.println(i + ". " +  d.get("id") + " | " + hits[i].score +  " | " +  d.get(field) );
 		}
 		if (reader != null) {
 			System.out.println("Documents: " + reader.numDocs());
 			reader.close();
 		}
+		Map<String, List<String>> result =  new HashMap<String, List<String>>();
+		result.put(""+ numTotalHits,ids);
+		
+		return result;
 	}
-
 }
 
