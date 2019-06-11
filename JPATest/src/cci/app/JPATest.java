@@ -61,6 +61,7 @@ public class JPATest {
 	@Autowired
 	private EntityManagerFactory emFactory;
 	
+	private SearchManager smng;
 	private Connection dbConnection;
 	private EntityManager entityManager;
 	
@@ -79,6 +80,8 @@ public class JPATest {
         ctx.refresh();
        
         JPATest jpa = (JPATest) ctx.getBean("JPATest");
+        SearchManager smng = new SearchManager();
+        
         jpa.init();
 		long cstart = System.currentTimeMillis();
 		
@@ -86,7 +89,7 @@ public class JPATest {
 		
 		
 		if (searchOrIndex) { // search
-			Map<String, List<String>> result = jpa.search(indexPath, "BYAZ*", 1 , 10);
+			Map<String, List<String>> result = smng.search(indexPath, "нефтяной", 1    , 10);
 //			List<Certificate> certs = jpa.getCertificatesByIds(ids);
 //			for (Certificate cert : certs ) {
 //			    System.out.println(cert.getCert_id() + " | " + cert.getNomercert() + " | " + cert.getNblanka() + " | ");        	
@@ -207,7 +210,7 @@ public class JPATest {
 						batch.put(id, rowMapper.mapRow(rs, row++));
 						// batch.put(id, mapRow(rs, row++));
 					}
-					textAddOrUpdateToIndex(indexPath, batch, create);
+					smng.textAddOrUpdateToIndex(indexPath, batch, create);
 					batch.clear();
 				} catch (SQLException e) {
 					System.out.println(e.getMessage());
@@ -306,80 +309,6 @@ public class JPATest {
 		cert.setNblanka(rs.getString("nblanka"));
 		cert.setTovar(rs.getString("tovar"));
 		return cert;
-	}
-	
-   /* -------------------------------------------
-    * Add list of Certificates to Lucene index 
-	* ------------------------------------------- */	
-	private void textAddOrUpdateToIndex(String indexPath, Map batch, Boolean create) throws Exception {
-		IndexWriter writer = null;
-		Long start = System.currentTimeMillis();		
-
-		try {
-			Directory dir = FSDirectory.open(Paths.get(indexPath));
-			Analyzer analyzer = new StandardAnalyzer();
-			IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
-			iwc.setOpenMode(create ? OpenMode.CREATE : OpenMode.CREATE_OR_APPEND);
-			iwc.setRAMBufferSizeMB(256.0);
-
-			writer = new IndexWriter(dir, iwc);
-			Set<String> ids = batch.keySet();
-
-			for (String id : ids) {
-				if (batch.get(id) != null) {
-					Document doc = new Document();
-					doc.add(new StringField("id", id, Field.Store.YES));
-					doc.add(new TextField("content", batch.get(id).toString(), Field.Store.NO));
-					
-					if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
-						writer.addDocument(doc);
-					} else {
-						writer.updateDocument(new Term("id", id), doc);
-					}
-				}
-			}
-			// writer.forceMerge(1);
-		} catch (Exception e) {
-			System.out.println(" caught a " + e.getClass() + "\n with message: " + e.getMessage());
-		} finally {
-		   if (writer != null) writer.close();
-		}
-		System.out.print(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " - Added to index - " + (System.currentTimeMillis() - start) + " ---- ");
-	}
-	
-   /* -------------------------------------------
-	* Search by Lucene index 
-	* ------------------------------------------- */	
-	public Map<String, List<String>> search(String indexPath, String queryString, int numberPage, int hitsPerPage) throws Exception {
-		String field = "content";
-		String queries = null;
-		boolean raw = false;
-	
-		QueryParser parser = new QueryParser(field, new StandardAnalyzer());
-		Query query = parser.parse(queryString);
-		IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
-		IndexSearcher searcher = new IndexSearcher(reader);
-		TopDocs results = searcher.search(query, reader.numDocs()); 
-		ScoreDoc[] hits = results.scoreDocs;
-           
-		int numTotalHits = Math.toIntExact(results.totalHits.value);
-		System.out.println(numTotalHits + " total matching documents");
-		List<String> ids = new ArrayList();
-		
-		for(int i=(numberPage - 1)*hitsPerPage + 1; i<=numberPage * hitsPerPage && i < numTotalHits; ++i) {
-		    int docId = hits[i].doc;
-		    Document d = searcher.doc(docId);
-		    ids.add(d.get("id"));
-		    System.out.println(i + ". " +  d.get("id") + " | " + hits[i].score +  " | " +  d.get(field) );
-		}
-		if (reader != null) {
-			System.out.println("Documents: " + reader.numDocs());
-			reader.close();
-		}
-		Map<String, List<String>> result =  new HashMap<String, List<String>>();
-		result.put(""+ numTotalHits,ids);
-		
-		return result;
 	}
 }
 
