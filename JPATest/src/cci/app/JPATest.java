@@ -90,17 +90,29 @@ public class JPATest {
 		
 		if (searchOrIndex) { // search
 			Map<String, List<String>> result = smng.search(indexPath, "нефтяной", 1    , 10);
-//			List<Certificate> certs = jpa.getCertificatesByIds(ids);
-//			for (Certificate cert : certs ) {
-//			    System.out.println(cert.getCert_id() + " | " + cert.getNomercert() + " | " + cert.getNblanka() + " | ");        	
-//			}
+			List<String> ids = new ArrayList<String>();
+			
 			String rows = (String) result.keySet().toArray()[0];
 			System.out.println("Rows : " + rows);
 			
+			System.out.println("---------- N DB query -------------");
+			long start = System.currentTimeMillis();
 			for (String id : result.get(rows) ) {
    			     Certificate cert = jpa.findCertificateByID(id);
-   			     System.out.println(cert.getCert_id() + " | " + cert.getNomercert() + " | " + cert.getNblanka() + " | ");   			     
+   			    // System.out.println(cert.getCert_id() + " || " + cert.getNomercert() + " || " + cert.getNblanka() + " | ");   			     
 			}
+			System.out.println("Time: " + (System.currentTimeMillis() - start));
+			
+			
+			System.out.println("---------- One DB query Order Problem -------------");
+			start = System.currentTimeMillis();
+			List<Certificate> certs = jpa.getCertificatesByIds(result.get(rows));
+			System.out.println("Time: " + (System.currentTimeMillis() - start));
+			for (Certificate cert : certs ) {
+			    System.out.println(cert.getCert_id() + " |& " + cert.getNomercert() + " |& " + cert.getNblanka() + " |& ");        	
+			}
+			
+			
 		} else { // index
 			if (jdbcOrJPA) {
 				jpa.indexCertificates(indexPath, 10000, false);
@@ -154,6 +166,7 @@ public class JPATest {
 		}
 		return certs;
 	}
+	
 	
 	public List<Certificate> getCertificatesPage(int page, int pagesize) {
 		entityManager.clear();
@@ -231,6 +244,30 @@ public class JPATest {
 		
 	}
 	
+	private void initConnection() {
+		try {
+			Class.forName(DB_DRIVER);
+		} catch (ClassNotFoundException e) {
+			System.out.println(e.getMessage());
+		}
+
+		try {
+			dbConnection = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		}
+	}
+	
+	
+	private Certificate mapRow(ResultSet rs, int row) throws SQLException {
+		Certificate cert = new Certificate();
+		cert.setCert_id(rs.getLong("cert_id"));
+		cert.setNomercert(rs.getString("nomercert"));
+		cert.setNblanka(rs.getString("nblanka"));
+		cert.setTovar(rs.getString("tovar"));
+		return cert;
+	}
+	
 	public void searchBeltpp() throws SQLException {
 		PreparedStatement statement = null;
 		Statement stat = null;
@@ -285,30 +322,6 @@ public class JPATest {
 				dbConnection.close();
 			}
 		}
-	}
-	
-	
-	private void initConnection() {
-		try {
-			Class.forName(DB_DRIVER);
-		} catch (ClassNotFoundException e) {
-			System.out.println(e.getMessage());
-		}
-
-		try {
-			dbConnection = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD);
-		} catch (SQLException e) {
-			System.out.println(e.getMessage());
-		}
-	}
-	
-	private Certificate mapRow(ResultSet rs, int row) throws SQLException {
-		Certificate cert = new Certificate();
-		cert.setCert_id(rs.getLong("cert_id"));
-		cert.setNomercert(rs.getString("nomercert"));
-		cert.setNblanka(rs.getString("nblanka"));
-		cert.setTovar(rs.getString("tovar"));
-		return cert;
 	}
 }
 
