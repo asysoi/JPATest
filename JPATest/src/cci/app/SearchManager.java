@@ -34,16 +34,14 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SearchManager {
-    private final String ID="id";
-    private final String CONTENT = "content";
 	private static final Logger LOG = Logger.getLogger(SearchManager.class);
     
    /* -------------------------------------------
     * Add list of documents to Lucene index 
-    * Map<String id, String content> 
+    * docs - Map<String id, String content> 
     *  
 	* ------------------------------------------- */	
-	public void textAddOrUpdateToIndex(String indexPath, Map batch, Boolean create) throws Exception {
+	public void addUpdateIndex(String indexPath, Map docs, String idFieldName, String contentFieldName, boolean create) throws Exception {
 		IndexWriter writer = null;
 		Long start = System.currentTimeMillis();		
 
@@ -55,18 +53,18 @@ public class SearchManager {
 			iwc.setRAMBufferSizeMB(256.0);
 
 			writer = new IndexWriter(dir, iwc);
-			Set<String> ids = batch.keySet();
+			Set<String> ids = docs.keySet();
 
 			for (String id : ids) {
-				if (batch.get(id) != null) {
+				if (docs.get(id) != null) {
 					Document doc = new Document();
-					doc.add(new StringField(ID, id, Field.Store.YES));
-					doc.add(new TextField(CONTENT , batch.get(id).toString(), Field.Store.NO));
+					doc.add(new StringField(idFieldName, id, Field.Store.YES));
+					doc.add(new TextField(contentFieldName, docs.get(id).toString(), Field.Store.NO));
 					
 					if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
 						writer.addDocument(doc);
 					} else {
-						writer.updateDocument(new Term("id", id), doc);
+						writer.updateDocument(new Term(idFieldName, id), doc);
 					}
 				}
 			}
@@ -81,15 +79,16 @@ public class SearchManager {
 	
    /* -----------------------------------------------------
 	* Search by Lucene index 
+	* 
 	* return result as Map<String, List<String>>
 	* String - number found rows 
 	* List<String> - list of found id selected result page
 	* ---------------------------------------------------- */	
-	public Map<String, List<String>> search(String indexPath, String queryString, int numberPage, int hitsPerPage) throws Exception {
+	public SearchResult search(String indexPath, String queryString, int numberPage, int hitsPerPage, String idFieldName, String contentFieldName) throws Exception {
 		String queries = null;
 		boolean raw = false;
 	
-		QueryParser parser = new QueryParser(CONTENT, new StandardAnalyzer());
+		QueryParser parser = new QueryParser(contentFieldName, new StandardAnalyzer());
 		Query query = parser.parse(queryString);
 		IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
 		IndexSearcher searcher = new IndexSearcher(reader);
@@ -103,16 +102,19 @@ public class SearchManager {
 		for(int i=(numberPage - 1)*hitsPerPage + 1; i<=numberPage * hitsPerPage && i < numTotalHits; ++i) {
 		    int docId = hits[i].doc;
 		    Document d = searcher.doc(docId);
-		    ids.add(d.get("id"));
-		    LOG.info(i + ". " +  d.get("id") + " | " + hits[i].score +  " | " +  d.get(CONTENT) );
+		    ids.add(d.get(idFieldName));
+		    LOG.info(i + ". " +  d.get("id") + " | " + hits[i].score +  " | " +  d.get(contentFieldName) );
 		}
 		if (reader != null) {
 			LOG.info("Documents: " + reader.numDocs());
 			reader.close();
 		}
-		Map<String, List<String>> result =  new HashMap<String, List<String>>();
-		result.put(""+ numTotalHits,ids);
-		
+		SearchResult result =  new SearchResult();
+		result.setNumFoundDocs(numTotalHits);
+		result.setIds(ids);
+		result.setHitsPerPage(hitsPerPage);
+		result.setPageNumber(numberPage);
+		   
 		return result;
 	}
 }
