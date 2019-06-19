@@ -27,21 +27,25 @@ import org.apache.lucene.index.IndexWriterConfig.OpenMode;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.springframework.stereotype.Component;
 
+import cci.model.cert.Certificate;
+
 @Component
-public class SearchManager {
-	private static final Logger LOG = Logger.getLogger(SearchManager.class);
+public class IndexManager {
+	private static final Logger LOG = Logger.getLogger(IndexManager.class);
     
    /* -------------------------------------------
     * Add list of documents to Lucene index 
     * docs - Map<String id, String content> 
     *  
 	* ------------------------------------------- */	
-	public void addUpdateIndex(String indexPath, Map docs, String idFieldName, String contentFieldName, boolean create) throws Exception {
+	public void addUpdateIndex(String indexPath, Map<String, Certificate> docs, String idFieldName, String contentFieldName, String dateName, boolean create) throws Exception {
 		IndexWriter writer = null;
 		Long start = System.currentTimeMillis();		
 
@@ -59,6 +63,7 @@ public class SearchManager {
 				if (docs.get(id) != null) {
 					Document doc = new Document();
 					doc.add(new StringField(idFieldName, id, Field.Store.YES));
+					doc.add(new StringField(dateName, docs.get(id).getDatacert(), Field.Store.YES));
 					doc.add(new TextField(contentFieldName, docs.get(id).toString(), Field.Store.NO));
 					
 					if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
@@ -84,25 +89,29 @@ public class SearchManager {
 	* String - number found rows 
 	* List<String> - list of found id selected result page
 	* ---------------------------------------------------- */	
-	public SearchResult search(String indexPath, String queryString, int numberPage, int hitsPerPage, String idFieldName, String contentFieldName) throws Exception {
+	public SearchResult search(String indexPath, String queryString, String idFieldName, String contentFieldName, String dateName, int numberPage, int hitsPerPage) throws Exception {
 		String queries = null;
 		boolean raw = false;
 	
+	    Sort sort = new Sort(new SortField(dateName, SortField.Type.STRING, true));
 		QueryParser parser = new QueryParser(contentFieldName, new StandardAnalyzer());
 		Query query = parser.parse(queryString);
 		IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
 		IndexSearcher searcher = new IndexSearcher(reader);
-		TopDocs results = searcher.search(query, reader.numDocs()); 
+		//TopDocs results = searcher.search(query, reader.numDocs(), sort);
+		TopDocs results = searcher.search(query, reader.numDocs());
 		ScoreDoc[] hits = results.scoreDocs;
            
 		int numTotalHits = Math.toIntExact(results.totalHits.value);
 		LOG.info(numTotalHits + " total matching documents");
 		List<String> ids = new ArrayList();
+		List<String> dates = new ArrayList();
 		
-		for(int i=(numberPage - 1)*hitsPerPage + 1; i<=numberPage * hitsPerPage && i < numTotalHits; ++i) {
+		for (int i=(numberPage - 1)*hitsPerPage + 1; i<=numberPage * hitsPerPage && i < numTotalHits; ++i) {
 		    int docId = hits[i].doc;
 		    Document d = searcher.doc(docId);
 		    ids.add(d.get(idFieldName));
+		    dates.add(d.get(dateName));
 		    LOG.info(i + ". " +  d.get("id") + " | " + hits[i].score +  " | " +  d.get(contentFieldName) );
 		}
 		if (reader != null) {
@@ -112,6 +121,7 @@ public class SearchManager {
 		SearchResult result =  new SearchResult();
 		result.setNumFoundDocs(numTotalHits);
 		result.setIds(ids);
+		result.setDates(dates);
 		result.setHitsPerPage(hitsPerPage);
 		result.setPageNumber(numberPage);
 		   

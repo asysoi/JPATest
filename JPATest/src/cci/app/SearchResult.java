@@ -5,11 +5,14 @@ import java.util.List;
 public class SearchResult {
     private int numFoundDocs;
     private List<String> ids;
+    private List<String> dates;
     private int pageNumber;
     private int hitsPerPage;
+    
 	public int getNumFoundDocs() {
-		return numFoundDocs;
+	     return numFoundDocs;
 	}
+	
 	public void setNumFoundDocs(int numFoundDocs) {
 		this.numFoundDocs = numFoundDocs;
 	}
@@ -18,6 +21,12 @@ public class SearchResult {
 	}
 	public void setIds(List<String> ids) {
 		this.ids = ids;
+	}
+	public List<String> getDates() {
+		return dates;
+	}
+	public void setDates(List<String> dates) {
+		this.dates = dates;
 	}
 	public int getPageNumber() {
 		return pageNumber;
@@ -31,5 +40,5 @@ public class SearchResult {
 	public void setHitsPerPage(int hitsPerPage) {
 		this.hitsPerPage = hitsPerPage;
 	}
-   
+    
 }
